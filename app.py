@@ -19,18 +19,16 @@ transform = transforms.Compose([
 ])
 
 # Loading the features from file where the features has been already obtained from colab
-f_dict = np.load("C:\\Users\\Hrithikka\\OneDrive\\Desktop\\features.npy", allow_pickle=True).item()
+f_dict = np.load("features.npy", allow_pickle=True).item()
 f_list = list(f_dict.values())
 image_names = list(f_dict.keys())
 
 # Creating a list of all image paths
 image_paths = []
-for root, dirs, files in os.walk("C:\\Users\\Hrithikka\\OneDrive\\Desktop\\lfw_dir"): 
+for root, dirs, files in os.walk("lfw_dir"): 
     for file in files:
         if file.endswith(".jpg") or file.endswith(".jpeg") or file.endswith(".png"):
-            #image_path = os.path.join(root, file)
-            #print(f"Found image: {image_path}")
-            #image_paths.append(image_path)      
+                 
             image_paths.append(os.path.join(root, file))
 
             
@@ -51,13 +49,14 @@ st.title('Similarity Search System')
 option = st.sidebar.selectbox('Select an option', ('Select an image', 'Upload an image'))
 
 q_image = None
+q_features = None
 
 
 if option == 'Select an image':
     #To select an image from the dataset
     image_name = st.selectbox('Select an image', image_names)
     # Displaying the query image
-    st.subheader('Query Image')
+    st.subheader('Actual Image')
     q_image_path = image_paths_dict.get(image_name)
     print("image name:", image_name)
     print("image path:", q_image_path)
@@ -90,17 +89,28 @@ elif option == 'Upload an image':
 
 
 
-#Obtaing the features of the query image
-q_image = transform(q_image)
-q_image = q_image.unsqueeze(0)
-q_features = resnet(q_image).detach().numpy().flatten()
+#Obtaining the features of the query image
+if q_image is not None:
+    q_image = transform(q_image)
+    q_image = q_image.unsqueeze(0)
+    q_features = resnet(q_image).detach().numpy().flatten()
 
-# Find the 10 most similar images to the query image
-distances, indices = model.kneighbors([q_features])
+# Finding the 10 most similar images to the query image
+
+indices = None 
+if q_features is not None:
+    distances, indices = model.kneighbors(q_features.reshape(1, -1))
+else:
+
+    print("None")
+
 st.subheader('Similar Images')
-for i in indices[0]:
-    if i < len(image_paths):
-        similar_image = Image.open(image_paths[i])
-        st.image(similar_image, caption=image_names[i])
-    else:
-        st.write(f"Error: Could not find image with index {i}")
+if indices is not None:
+    for i in indices[0]:
+        if i < len(image_paths):
+            similar_image = Image.open(image_paths[i])
+            st.image(similar_image, caption=image_names[i])
+        else:
+            st.write(f"Could not find image with index {i}")
+else:
+    print("None")
